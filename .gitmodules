@@ -1,0 +1,27 @@
+[submodule "BSVTools"]
+	path = dep/BSVTools
+	url = https://github.com/timksf/BSVTools.git
+[submodule "BlueAXI"]
+	path = dep/BlueAXI
+	url = https://github.com/timksf/BlueAXI.git
+[submodule "BlueLib"]
+	path = dep/BlueLib
+	url = https://github.com/timksf/BlueLib.git
+[submodule "bluecsr"]
+	path = dep/bluecsr
+	url = https://github.com/timksf/bluecsr.git
+[submodule "bluefabric"]
+	path = dep/bluefabric
+	url = https://github.com/timksf/bluefabric.git
+[submodule "bluegpio"]
+	path = dep/bluegpio
+	url = https://github.com/timksf/bluegpio.git
+[submodule "bluej"]
+	path = dep/bluej
+	url = https://github.com/timksf/bluej.git
+[submodule "blueuart"]
+	path = dep/blueuart
+	url = https://github.com/timksf/blueuart.git
+[submodule "SCOoOTER"]
+	path = dep/SCOoOTER
+	url = https://github.com/timksf/SCOoOTER.git

@@ -1,0 +1,12 @@
+session_name: scoooter_bluej_demo
+windows:
+- focus: 'true'
+  layout: 12c5,213x48,0,0{106x48,0,0,0,106x48,107,0[106x24,107,0,1,106x23,107,25,2]}
+  options: {}
+  panes:
+  - zsh
+  - zsh
+  - focus: 'true'
+    shell_command: zsh
+  start_directory: .
+  window_name: zsh
