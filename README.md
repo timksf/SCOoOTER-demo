@@ -12,9 +12,9 @@ copied into this repository.
 
 ## Checkout and toolchain
 
-Initialize only the top-level submodules. The dependencies have their own
-development submodules, but this project deliberately uses one flat set of
-compatible revisions from `dep/`.
+Clone the repository, then initialize its top-level submodules. This checks
+out every dependency required by the demo from the compatible revisions
+pinned in `dep/`.
 
 ```sh
 git clone <repository-url> scoooter-bluej-demo
@@ -23,17 +23,61 @@ git submodule update --init
 nix develop ./nix
 ```
 
-The Makefile uses BSVTools' standard library discovery. The small adapters in
-`libraries/` add each submodule's BSV source directories; the BlueAXI,
-BlueLib, and BlueCSR entries are symlinks to the integration files supplied by
-those projects.
+The update is intentionally not recursive; nested development submodules of
+SCOoOTER and the other dependencies are not required.
+
+The Makefile uses BSVTools' standard library discovery. There is a BSVTools adapter
+inside `libraries/` for SCOoOTER as it does not have native BSVTools integration.
 
 The firmware is freestanding RV32I. `make firmware` builds the application,
 links its runtime VMA in RAM while assigning its load address in the flash
 window, and emits `firmware/demo.hex`. The hex file contains a four-word magic
-header followed by the contiguous payload; no ELF parser or custom image
-packer is needed. `make compile` builds both firmware images before compiling
-the SoC.
+header followed by the contiguous, flat firmware binary; no ELF parser or custom image
+packer is needed in the bootrom. 
+`make compile` builds both firmware images before compiling the SoC.
+
+## SoC architecture
+
+```text
+ SCOoOTER IFU/LSU -> fixed-priority arbiter -> memory/AHB ----+
+                                                              |
+                                                              |
+ JTAG -> BlueJ TAP -> RISC-V DM -> memory/AHB ----------------+-> 3:1 AHB mux ---+
+                    |           `-> SCOoOTER debug hart       |                  |     
+                    |                                         |                  |
+                    `-> BlueBus -> JTAG/AHB ------------------+                  |
+                                                                                 |
+                                                                                 v
+                                                                          AHB address map
+                                                                           |-- Boot ROM
+                                                                           |-- Flash image
+                                                                           |-- RAM
+                                                                           `-- AHB/APB bridge
+                                                                                |-- UART
+                                                                                |-- GPIO (IRQ 0)
+                                                                                |-- Watchdog (IRQ 12)
+                                                                                |-- CLINT
+                                                                                `-- PLIC
+```
+
+The LSU has fixed priority over instruction fetches. The AHB mux combines the
+core, RISC-V Debug Module system-bus access, and BlueBus access before address
+decoding. Abstract debug-register accesses use the direct debug-hart path and
+do not traverse the system bus.
+
+## Demo software
+
+At reset, the boot ROM validates the preloaded flash header, copies the
+application to RAM, and jumps to it; a bad image instead produces a visible
+GPIO error pattern. The application initializes its C runtime and trap entry,
+then drives the LEDs from periodic CLINT timer interrupts and GPIO interrupts
+routed through the PLIC.
+
+The bounded simulation checks the boot handoff, pulses GPIO bit 2 as the FPGA
+button, and only passes after observing the expected boot, timer, and button
+effects on the GPIO outputs. The separate OpenOCD/GDB regression exercises the
+JTAG Debug Module by loading RAM, single-stepping, and inserting and removing a
+software breakpoint.
 
 ## Simulation
 
@@ -55,36 +99,21 @@ For a bounded boot and interrupt self-test that does not require OpenOCD:
 make FINITE_TEST=1 sim
 ```
 
-This preloads the flash image, checks the boot handoff, pulses the simulated
-button, and requires observable timer and GPIO interrupt effects.
-
 Connect OpenOCD from a second terminal:
 
 ```sh
 openocd -f openocd.cfg
 ```
 
-Build the RV32 test image and run the GDB regression from a third terminal:
+Build the RV32 test image and run the GDB batch script from a third terminal:
 
 ```sh
 make scoooter-gdb-elf
 gdb-multiarch -q -batch -x test/scoooter_gdb.gdb build/scoooter-gdb.elf
 ```
 
-The batch test loads RAM through the RISC-V Debug Module, checks single-step,
-sets and removes a software breakpoint, and steps over the restored
-instruction. The `gdb` supplied by the Nix shell supports RV32; on distributions
-whose native GDB does not, use `gdb-multiarch` with the same arguments.
-
-The demo defaults to one hart. Use matching build and OpenOCD settings for a
-multi-hart configuration:
-
-```sh
-make SCOOOTER_NUM_THREADS=2 SCOOOTER_NUM_CPU=1 compile
-openocd -c "set SCOOOTER_HART_COUNT 2" -f openocd.cfg
-```
-
-Hart indices are flattened as `cpu * NUM_THREADS + thread`.
+The current SoC integration exposes one hart to the RISC-V Debug Module and
+OpenOCD.
 
 To use BlueJ's custom BlueBus scan without creating a RISC-V target:
 
@@ -104,22 +133,36 @@ The OpenOCD telnet console then provides `bluebus_read32` and
 | `0x4000_0000` | 8 MiB | APB bridge |
 | `0x8000_0000` | 64 KiB | RAM |
 
-| APB offset | Size | Target |
+| Address | Size | Target |
 | --- | ---: | --- |
-| `0x0000` | 4 KiB | BlueUART |
-| `0x1000` | 4 KiB | BlueGPIO |
-| `0x2000` | 4 KiB | Watchdog |
-| `0x3000` | 4 KiB | CLINT (`mtime`/`mtimecmp`) |
-| `0x0040_0000` | 4 MiB | PLIC |
+| `0x4000_0000` | 4 KiB | BlueUART |
+| `0x4000_1000` | 4 KiB | BlueGPIO |
+| `0x4000_2000` | 4 KiB | Watchdog |
+| `0x4000_3000` | 4 KiB | CLINT (`mtime`/`mtimecmp`) |
+| `0x4040_0000` | 4 MiB | PLIC |
 
-The boot ROM initializes a stack at the top of RAM, validates the flash magic
-header and RAM bounds, copies the payload below the reserved top 4 KiB
-workspace, and jumps to its linked entry point. An invalid image parks with a
-visible GPIO pattern. The application startup clears its own `.bss`, configures
-the CLINT timer and GPIO rising-edge interrupt, and enables the machine timer
-and PLIC external interrupt paths. In the simulation testbench, GPIO bit 2 is
-pulsed as the Cmod button; the timer and button handlers change the LED
-pattern.
+## Interrupt map
+
+| Core interrupt | `mcause` | Source | Route |
+| --- | ---: | --- | --- |
+| Machine software (`MSIP`) | 3 | None | Tied low |
+| Machine timer (`MTIP`) | 7 | CLINT | Direct to the hart |
+| Machine external (`MEIP`) | 11 | PLIC | PLIC output to the hart |
+
+PLIC source ID 0 means no interrupt and is not assigned to a device. The
+implemented external sources are:
+
+| PLIC source ID | Interrupt-vector slot | Source |
+| ---: | ---: | --- |
+| 1 | 0 | GPIO, any enabled GPIO event |
+| 2-12 | 1-11 | Unused |
+| 13 | 12 | Watchdog timeout |
+| 14-16 | 13-15 | Unused |
+
+The UART has no interrupt connection in the current integration. The demo
+firmware enables PLIC source 1 for the simulated button and programs the CLINT
+separately for periodic timer interrupts; source 13 is wired and handled but
+the demo does not start the watchdog.
 
 ## Cmod A7 flow
 

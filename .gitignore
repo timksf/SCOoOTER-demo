@@ -20,3 +20,5 @@ libraries/BlueJ/jtag_bdpi.o
 *.bin
 *.hex
 *.yaml
+*.envrc
+.direnv/
