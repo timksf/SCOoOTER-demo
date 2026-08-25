@@ -1,9 +1,10 @@
-# SCOoOTER standalone demo GDB regression.
 set pagination off
 set confirm off
 set architecture riscv:rv32
 target extended-remote localhost:3333
 monitor halt
+set $mie = 0
+set $mstatus = $mstatus & ~8
 load
 set $pc = _start
 set $t0 = 0

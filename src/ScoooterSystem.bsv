@@ -74,7 +74,7 @@ module [Module] mkScoooterSystem#(
 
     rule r_interrupts;
         i_cpu.sw_interrupt(False);
-        i_cpu.timer_interrupt(False);
+        i_cpu.timer_interrupt(i_bus.timer_irq[0]);
         i_cpu.external_interrupt(i_bus.ext_irq[0]);
     endrule
 

@@ -20,31 +20,31 @@ interface MemoryAhbAdapter_ifc;
 endinterface
 
 module mkMemoryAhbAdapter(MemoryAhbAdapter_ifc);
-    AhbMaster_ifc#(32, 32) i_ahb <- mkAhbMaster(2);
-    FIFOF#(MemoryRequest#(32, 32)) f_request <- mkFIFOF;
-    FIFOF#(MemoryResponse#(32)) f_response <- mkFIFOF;
+    AhbMaster_ifc#(32, 32) i_ahb <- mkAhbMaster(4);
 
-    rule r_request;
-        let request = f_request.first;
-        f_request.deq;
-        i_ahb.request.put(ahb_single_request(AhbRequest_t {
-            address: request.address,
-            write: request.write,
-            write_data: request.data,
-            size: memory_ahb_size(request.byteen),
-            protection: ahb_protection(
-                AHB_DATA_ACCESS, AHB_PRIVILEGED_ACCESS, AHB_NON_BUFFERABLE, AHB_NON_CACHEABLE
-            ),
-            lock: False
-        }));
-    endrule
+    interface Server memory;
+        interface Put request;
+            method Action put(MemoryRequest#(32, 32) request);
+                i_ahb.request.put(ahb_single_request(AhbRequest_t {
+                    address: request.address,
+                    write: request.write,
+                    write_data: request.data,
+                    size: memory_ahb_size(request.byteen),
+                    protection: ahb_protection(
+                        AHB_DATA_ACCESS, AHB_PRIVILEGED_ACCESS, AHB_NON_BUFFERABLE, AHB_NON_CACHEABLE
+                    ),
+                    lock: False
+                }));
+            endmethod
+        endinterface
 
-    rule r_response;
-        let response <- i_ahb.response.get;
-        f_response.enq(MemoryResponse { data: response.read_data });
-    endrule
-
-    interface memory = toGPServer(f_request, f_response);
+        interface Get response;
+            method ActionValue#(MemoryResponse#(32)) get;
+                let response <- i_ahb.response.get;
+                return MemoryResponse { data: response.read_data };
+            endmethod
+        endinterface
+    endinterface
     interface m_ahb = i_ahb.fabric;
 endmodule
 

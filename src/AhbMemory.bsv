@@ -46,6 +46,45 @@ module mkAhbBootRom(AhbBootRom_ifc#(32, 32));
     interface s_ahb = i_ahb.fabric;
 endmodule
 
+interface AhbFlashImage_ifc#(numeric type addr_w, numeric type data_w);
+    interface AhbSlaveFabric_ifc#(addr_w, data_w) s_ahb;
+endinterface
+
+module mkAhbFlashImage(AhbFlashImage_ifc#(32, 32));
+    BRAM_Configure cfg_memory = defaultValue;
+    cfg_memory.memorySize   = 'h4000;
+    cfg_memory.latency      = 1;
+    cfg_memory.loadFormat   = tagged Hex "../firmware/demo.hex";
+
+    BRAM1Port#(Bit#(14), Bit#(32)) i_memory <- mkBRAM1Server(cfg_memory);
+    AhbSlave_ifc#(32, 32)          i_ahb    <- mkAhbSlave(False);
+    FIFOF#(Bool)                   f_error  <- mkSizedFIFOF(2);
+
+    rule r_request;
+        let request <- i_ahb.request.get;
+        Bool valid = request.address < 'h0001_0000;
+        i_memory.portA.request.put(BRAMRequest {
+            write: False,
+            responseOnWrite: False,
+            address: request.address[15:2],
+            datain: 0
+        });
+        f_error.enq(!valid || request.write);
+    endrule
+
+    rule r_response;
+        let data <- i_memory.portA.response.get;
+        let error = f_error.first;
+        f_error.deq;
+        i_ahb.response.put(AhbResponse_t {
+            read_data: error ? 0 : data,
+            slave_error: error
+        });
+    endrule
+
+    interface s_ahb = i_ahb.fabric;
+endmodule
+
 interface AhbRam_ifc#(numeric type addr_w, numeric type data_w);
     interface AhbSlaveFabric_ifc#(addr_w, data_w) s_ahb;
 endinterface

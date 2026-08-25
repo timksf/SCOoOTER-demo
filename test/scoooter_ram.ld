@@ -1,4 +1,3 @@
-/* SCOoOTER standalone demo RAM image. */
 OUTPUT_ARCH(riscv)
 ENTRY(_start)
 

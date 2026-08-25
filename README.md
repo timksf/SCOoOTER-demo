@@ -28,6 +28,13 @@ The Makefile uses BSVTools' standard library discovery. The small adapters in
 BlueLib, and BlueCSR entries are symlinks to the integration files supplied by
 those projects.
 
+The firmware is freestanding RV32I. `make firmware` builds the application,
+links its runtime VMA in RAM while assigning its load address in the flash
+window, and emits `firmware/demo.hex`. The hex file contains a four-word magic
+header followed by the contiguous payload; no ELF parser or custom image
+packer is needed. `make compile` builds both firmware images before compiling
+the SoC.
+
 ## Simulation
 
 Compile the native Bluesim testbench:
@@ -42,6 +49,15 @@ Run the remote-bitbang simulation in one terminal. It waits for OpenOCD:
 make sim
 ```
 
+For a bounded boot and interrupt self-test that does not require OpenOCD:
+
+```sh
+make FINITE_TEST=1 sim
+```
+
+This preloads the flash image, checks the boot handoff, pulses the simulated
+button, and requires observable timer and GPIO interrupt effects.
+
 Connect OpenOCD from a second terminal:
 
 ```sh
@@ -52,7 +68,7 @@ Build the RV32 test image and run the GDB regression from a third terminal:
 
 ```sh
 make scoooter-gdb-elf
-gdb -q -batch -x test/scoooter_gdb.gdb build/scoooter-gdb.elf
+gdb-multiarch -q -batch -x test/scoooter_gdb.gdb build/scoooter-gdb.elf
 ```
 
 The batch test loads RAM through the RISC-V Debug Module, checks single-step,
@@ -84,6 +100,7 @@ The OpenOCD telnet console then provides `bluebus_read32` and
 | Base | Size | Target |
 | --- | ---: | --- |
 | `0x0000_0000` | 4 KiB | Boot ROM |
+| `0x2000_0000` | 64 KiB | Preloaded read-only flash image |
 | `0x4000_0000` | 8 MiB | APB bridge |
 | `0x8000_0000` | 64 KiB | RAM |
 
@@ -92,10 +109,17 @@ The OpenOCD telnet console then provides `bluebus_read32` and
 | `0x0000` | 4 KiB | BlueUART |
 | `0x1000` | 4 KiB | BlueGPIO |
 | `0x2000` | 4 KiB | Watchdog |
+| `0x3000` | 4 KiB | CLINT (`mtime`/`mtimecmp`) |
 | `0x0040_0000` | 4 MiB | PLIC |
 
-The boot ROM initializes `sp` to `0x8000_1000` and jumps to RAM at
-`0x8000_0000`. `make compile` regenerates `bootrom/boot.hex` when required.
+The boot ROM initializes a stack at the top of RAM, validates the flash magic
+header and RAM bounds, copies the payload below the reserved top 4 KiB
+workspace, and jumps to its linked entry point. An invalid image parks with a
+visible GPIO pattern. The application startup clears its own `.bss`, configures
+the CLINT timer and GPIO rising-edge interrupt, and enables the machine timer
+and PLIC external interrupt paths. In the simulation testbench, GPIO bit 2 is
+pulsed as the Cmod button; the timer and button handlers change the LED
+pattern.
 
 ## Cmod A7 flow
 
@@ -118,6 +142,7 @@ image are placed below `build/ScoooterCmodA7/`. The hardware OpenOCD setup is
 
 ```text
 bootrom/          Minimal RV32 boot ROM
+firmware/         Flash-linked interrupt demo application
 dep/              Git submodules only
 fpga/cmoda7/      Board wrapper, constraints, and Vivado/OpenOCD scripts
 libraries/        BSVTools dependency integration metadata

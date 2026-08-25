@@ -4,31 +4,31 @@ LLVM_OBJCOPY ?= llvm-objcopy
 
 CFLAGS := --target=riscv32-unknown-elf -march=rv32i_zicsr -mabi=ilp32
 CFLAGS += -ffreestanding -fno-builtin -fno-stack-protector -fno-pic
-CFLAGS += -msmall-data-limit=0 -mno-relax -O1
+CFLAGS += -msmall-data-limit=0 -mno-relax -O2
 
-OBJECTS := boot.o boot_c.o trap.o
+OBJECTS := demo.o demo_start.o trap.o
 
 .PHONY: all clean
 
-all: boot.hex
+all: demo.hex
 
-boot.o: boot.S
+demo.o: demo.c
 	$(SCOOOTER_CLANG) $(CFLAGS) -c $< -o $@
 
-boot_c.o: boot.c
+demo_start.o: demo.S
 	$(SCOOOTER_CLANG) $(CFLAGS) -c $< -o $@
 
 trap.o: trap.S
 	$(SCOOOTER_CLANG) $(CFLAGS) -c $< -o $@
 
-boot.elf: $(OBJECTS) boot.ld
-	$(SCOOOTER_LLD) -flavor gnu -m elf32lriscv -T boot.ld $(OBJECTS) -o $@
+demo.elf: $(OBJECTS) demo.ld
+	$(SCOOOTER_LLD) -flavor gnu -m elf32lriscv -T demo.ld $(OBJECTS) -o $@
 
-boot.bin: boot.elf
+demo.bin: demo.elf
 	$(LLVM_OBJCOPY) -O binary $< $@
 
-boot.hex: boot.bin
+demo.hex: demo.bin
 	od -An -tx4 -w4 -v $< | tr -d ' ' > $@
 
 clean:
-	rm -f $(OBJECTS) boot.elf boot.bin boot.hex
+	rm -f $(OBJECTS) demo.elf demo.bin demo.hex

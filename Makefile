@@ -23,6 +23,10 @@ EXTRA_FLAGS += -show-schedule
 EXTRA_FLAGS += -D "BSV_TIMESCALE=1ns/1ps"
 EXTRA_FLAGS += -D "SCOOOTER_DEBUG"
 
+ifeq ($(FINITE_TEST),1)
+EXTRA_FLAGS += -D "SCOOOTER_FINITE_TEST"
+endif
+
 SCOOOTER_NUM_THREADS ?= 1
 SCOOOTER_NUM_CPU ?= 1
 EXTRA_FLAGS += -D "SCOOOTER_NUM_THREADS=$(SCOOOTER_NUM_THREADS)"
@@ -50,12 +54,15 @@ endif
 
 include $(BSV_TOOLS)/scripts/rules.mk
 
-.PHONY: bootrom scoooter-gdb-elf
+.PHONY: bootrom firmware scoooter-gdb-elf
 
 bootrom:
 	$(MAKE) -C $(PROJECT_ROOT)/bootrom
 
-compile compile_top: bootrom
+firmware:
+	$(MAKE) -C $(PROJECT_ROOT)/firmware
+
+compile compile_top: bootrom firmware $(CONFIG_ADAPTER)
 
 scoooter-gdb-elf: | directories
 	$(SCOOOTER_CLANG) --target=riscv32-unknown-elf -march=rv32im -mabi=ilp32 -g \

@@ -25,3 +25,6 @@
 [submodule "SCOoOTER"]
 	path = dep/SCOoOTER
 	url = https://github.com/timksf/SCOoOTER.git
+[submodule "dep/bluexlnx"]
+	path = dep/bluexlnx
+	url = https://github.com/timksf/bluexlnx.git

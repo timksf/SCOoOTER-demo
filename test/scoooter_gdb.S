@@ -1,4 +1,3 @@
-/* SCOoOTER standalone demo GDB program. */
     .section .text.start, "ax", @progbits
     .global _start
     .global breakpoint_site
