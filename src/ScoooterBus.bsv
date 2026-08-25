@@ -46,7 +46,7 @@ module [Module] mkScoooterDevices(ScoooterDevices_ifc);
     BlueUartAPB_ifc                 i_uart          <- mkBlueUartAPB(16, 16);
     BlueGPIOAPB_ifc#(8)             i_gpio          <- mkBlueGPIOAPB;
     BlueWatchdogAPB_ifc             i_wdg           <- mkBlueWatchdogAPB;
-    ClintAPB_ifc                     i_clint         <- mkClintAPB;
+    ClintAPB_ifc                    i_clint         <- mkClintAPB;
     PlicAPB_ifc                     i_plic          <- mkPlicAPB;
 
     interface ScoooterAhbDevices_ifc ahb;
@@ -79,6 +79,7 @@ endmodule
 module [AddrMapCtx_t#(32, ApbSlaveFabric_ifc#(32, 32, 0))] peripheral_addr_map#(ScoooterApbDevices_ifc i_devices)(Empty);
     addr_map_def("SCOoOTER APB peripherals");
 
+    //not sure whether this is the best place to put the CLINT..
     addr_map_target('h0000_0000, 'h0000_1000, "UART",   i_devices.uart.s_apb);
     addr_map_target('h0000_1000, 'h0000_1000, "GPIO",   i_devices.gpio.s_apb);
     addr_map_target('h0000_2000, 'h0000_1000, "WDG",    i_devices.wdg.s_apb);

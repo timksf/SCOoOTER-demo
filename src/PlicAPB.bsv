@@ -17,10 +17,11 @@ interface PlicAPB_ifc;
 endinterface
 
 module mkPlicAPB(PlicAPB_ifc);
-    PLICIFC#(16, 8) i_plic <- mkPLIC;
-    ApbSlave_ifc#(32, 32, 0) i_apb <- mkApbSlave(True);
-    Reg#(Bool) rg_pending <- mkReg(False);
-    Reg#(Bool) rg_write <- mkReg(False);
+    PLICIFC#(16, 8)             i_plic  <- mkPLIC;
+    ApbSlave_ifc#(32, 32, 0)    i_apb   <- mkApbSlave(True);
+
+    Reg#(Bool) rg_pending   <- mkReg(False);
+    Reg#(Bool) rg_write     <- mkReg(False);
 
     rule r_request if(!rg_pending);
         let request <- i_apb.request.get;

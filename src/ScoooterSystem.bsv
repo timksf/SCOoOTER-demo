@@ -57,8 +57,9 @@ module [Module] mkScoooterSystem#(
     AhbMasterMux_ifc#(3, 32, 32) i_ahb_mux          <- mkAhbMasterMux(clocked_by system_clk, reset_by system_rst_n);
     MemoryAhbAdapter_ifc         i_dm_ahb           <- mkMemoryAhbAdapter(clocked_by system_clk, reset_by system_rst_n);
     JtagAhbAdapter_ifc           i_jtag_ahb         <- mkJtagAhbAdapter(clocked_by system_clk, reset_by system_rst_n);
-    FIFOF#(DMHartRegRequest_t)    f_abstract_request <- mkFIFOF(clocked_by system_clk, reset_by system_rst_n);
-    FIFOF#(DMHartRegRequest_t)    f_abstract_inflight <- mkFIFOF(clocked_by system_clk, reset_by system_rst_n);
+    
+    FIFOF#(DMHartRegRequest_t)    f_abstract_request    <- mkFIFOF(clocked_by system_clk, reset_by system_rst_n);
+    FIFOF#(DMHartRegRequest_t)    f_abstract_inflight   <- mkFIFOF(clocked_by system_clk, reset_by system_rst_n);
 
     //jtag RISCV DM system bus to ahb adapter
     mkConnection(i_jtag.debug.m_system, i_dm_ahb.memory);
@@ -73,7 +74,7 @@ module [Module] mkScoooterSystem#(
     mkConnection(i_ahb_mux.down,    i_bus.s_ahb);
 
     rule r_interrupts;
-        i_cpu.sw_interrupt(False);
+        i_cpu.sw_interrupt(False); //no sw interrupt yet
         i_cpu.timer_interrupt(i_bus.timer_irq[0]);
         i_cpu.external_interrupt(i_bus.ext_irq[0]);
     endrule

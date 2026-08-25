@@ -8,15 +8,17 @@ import UartRegs :: *;
 import UartRx :: *;
 import UartTx :: *;
 
+(* always_enabled *)
 interface BlueUartAPB_ifc;
-    (* always_enabled *) method Action rx(Bit#(1) value);
-    (* always_ready *) method Bit#(1) tx;
+    method Action rx(Bit#(1) value);
+    method Bit#(1) tx;
     interface ApbSlaveFabric_ifc#(32, 32, 0) s_apb;
 endinterface
 
 module [Module] mkBlueUartAPB#(Integer rx_buffer, Integer tx_buffer)(BlueUartAPB_ifc);
     BlueCSRAccess_ifc#(32, 32, 0, UartRegs) i_csrs <- create_blue_csr(uart_csrs(True), False);
-    BlueCSR_APB_ifc#(32, 32, 0, 0) i_apb <- mkBlueCSRAPBAdapter(i_csrs.external, True);
+    BlueCSR_APB_ifc#(32, 32, 0, 0)          i_apb <- mkBlueCSRAPBAdapter(i_csrs.external, True);
+
     Bit#(2) stop_bits = i_csrs.internal.ctrl_s2 ? 2 : 1;
     UartTx#(8) i_tx <- mkUartTxBuffered(stop_bits, i_csrs.internal.prescaler, tx_buffer);
     UartRx#(8) i_rx <- mkUartRxBuffered(stop_bits, i_csrs.internal.prescaler, rx_buffer);
