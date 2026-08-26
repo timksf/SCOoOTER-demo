@@ -1,14 +1,11 @@
 # SCOoOTER + BlueJ debug demo
 
-This standalone project combines the SCOoOTER RISC-V core with BlueJ's JTAG,
-RISC-V Debug Module, and BlueBus support. Its primary purpose is simulation and
-OpenOCD/GDB regression testing. A Cmod A7 hardware flow is retained under
-`fpga/cmoda7` for continued development.
+This project combines the SCOoOTER RISC-V core with BlueJ's JTAG,
+RISC-V Debug Module, and BlueBus support.
 
 The project owns only the SoC integration in `src/`, its testbench, boot ROM,
 and board wrapper. SCOoOTER, BlueJ, BSVTools, and the reusable peripheral and
-bus libraries are Git submodules under `dep/`; no dependency sources are
-copied into this repository.
+bus libraries are Git submodules under `dep/`.
 
 ## Checkout and toolchain
 
