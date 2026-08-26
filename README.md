@@ -38,7 +38,7 @@ packer is needed in the bootrom.
 
 ## SoC architecture
 
-[](doc/soc.drawio.png)
+![](doc/soc.drawio.png)
 
 The LSU has fixed priority over instruction fetches. The AHB mux combines the
 core, RISC-V Debug Module system-bus access, and BlueBus access before address
