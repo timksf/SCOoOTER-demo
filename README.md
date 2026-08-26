@@ -38,27 +38,7 @@ packer is needed in the bootrom.
 
 ## SoC architecture
 
-```text
- SCOoOTER IFU/LSU -> fixed-priority arbiter -> memory/AHB ----+
-                                                              |
-                                                              |
- JTAG -> BlueJ TAP -> RISC-V DM -> memory/AHB ----------------+-> 3:1 AHB mux ---+
-                    |           `-> SCOoOTER debug hart       |                  |     
-                    |                                         |                  |
-                    `-> BlueBus -> JTAG/AHB ------------------+                  |
-                                                                                 |
-                                                                                 v
-                                                                          AHB address map
-                                                                           |-- Boot ROM
-                                                                           |-- Flash image
-                                                                           |-- RAM
-                                                                           `-- AHB/APB bridge
-                                                                                |-- UART
-                                                                                |-- GPIO (IRQ 0)
-                                                                                |-- Watchdog (IRQ 12)
-                                                                                |-- CLINT
-                                                                                `-- PLIC
-```
+[](doc/soc.drawio.png)
 
 The LSU has fixed priority over instruction fetches. The AHB mux combines the
 core, RISC-V Debug Module system-bus access, and BlueBus access before address
